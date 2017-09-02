@@ -1,0 +1,62 @@
+---
+- hosts: LAMP
+  sudo: yes
+  tasks:
+    - name: add a new user
+      user: name=rarabai
+
+    - name: install apache
+      yum: name=httpd state=latest
+
+    - name: start apache and enabled
+      service: name=httpd state=started enabled=yes
+
+    - name: change owner
+      file: dest=/var/www/html owner=anzii recurse=yes
+
+    - name: copy index.html
+      copy: src=./index.html dest=/var/www/html/index.html owner=anzii
+
+    - name: install php packages
+      yum: name={{item}} state=latest
+      with_items:
+        - php
+        - php-devel
+        - php-mbstring
+        - php-mysql
+      notify:
+        - restart apache
+
+    - name: copy hello.php
+      copy: src=./hello.php dest=/var/www/html/hello.php owner=anzii
+
+#    - name: Add repository
+#      yum_repository:
+#        name: mysql
+#        description: mysql add repo yum
+#        baseurl: http://dev.mysql.com/get/mysql57-community-release-el7-7.noarch.rpm
+
+    - name: Uninstall MariaDB
+      yum: name=mariadb state=absent
+
+#    - name: install mysql
+#      yum: name=mysql-server state=latest
+#
+    - name: install mysql-python mysql-server
+      yum: name={{item}} state=latest
+      with_items:
+        - mysql-server
+        - MySQL-python
+
+    - name: start mysql and enabled
+      service: name=mysqld state=started enabled=yes
+
+    - name: create a database
+      mysql_db: name=mydb state=present
+
+    - name: create a user for mydb
+      mysql_user: name=dbuser password=dbpassword priv=mydb.*:ALL state=present
+
+  handlers:
+    - name: restart apache
+      service: name=httpd state=restarted
